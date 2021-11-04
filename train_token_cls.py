@@ -120,6 +120,8 @@ def main():
     model = BertForTokenClassification.from_pretrained(
         checkpoint,
         num_labels=len(unique_tags),
+        id2label=id2tag,
+        label2id=tag2id,
     )
 
     training_args = TrainingArguments(
