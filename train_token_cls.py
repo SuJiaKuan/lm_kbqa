@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from datasets import load_metric
 from transformers import BertTokenizerFast
 from transformers import BertForTokenClassification
 from transformers import Trainer
@@ -63,6 +64,36 @@ def encode_tags(tags, encodings, tag2id):
         encoded_labels.append(doc_enc_labels.tolist())
 
     return encoded_labels
+
+
+def compute_metrics(model_outputs):
+    metric = load_metric("seqeval")
+
+    predictions, labels = model_outputs
+    predictions = np.argmax(predictions, axis=-1)
+
+    true_predictions = [
+        [pred for pred, label in zip(prediction_seq, label_seq)
+            if label != -100]
+        for prediction_seq, label_seq in zip(predictions, labels)
+    ]
+    true_labels = [
+        [label for pred, label in zip(prediction_seq, label_seq)
+            if label != -100]
+        for prediction_seq, label_seq in zip(predictions, labels)
+    ]
+
+    results = metric.compute(
+        predictions=true_predictions,
+        references=true_labels,
+    )
+
+    return {
+        "precision": results["overall_precision"],
+        "recall": results["overall_recall"],
+        "f1": results["overall_f1"],
+        "accuracy": results["overall_accuracy"],
+    }
 
 
 def main():
@@ -131,6 +162,7 @@ def main():
         per_device_eval_batch_size=16,
         warmup_steps=500,
         weight_decay=0.01,
+        evaluation_strategy="epoch",
         logging_dir="./logs",
         logging_steps=10,
     )
@@ -140,6 +172,7 @@ def main():
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
+        compute_metrics=compute_metrics,
     )
 
     trainer.train()
