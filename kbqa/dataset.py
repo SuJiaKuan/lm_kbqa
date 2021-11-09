@@ -1,5 +1,4 @@
 import operator
-
 from fuzzysearch import find_near_matches
 from thefuzz import process
 
@@ -14,7 +13,7 @@ def _match_best_question_entities(question, names, max_l_dist=3):
     name_candidates = process.extractBests(question, clean_names)
 
     if not name_candidates:
-        return indexed_word_tokens, []
+        return word_tokens, []
 
     best_score = max(name_candidates, key=operator.itemgetter(1))[1]
     name_candidates = list(filter(
