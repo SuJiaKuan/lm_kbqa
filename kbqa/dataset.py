@@ -22,7 +22,7 @@ def _match_best_question_entities(question, names, max_l_dist=3):
         name_candidates,
     ))
 
-    matched_indices_lst = []
+    entity_indices_lst = []
     for name, _ in name_candidates:
         matches = find_near_matches(name, question, max_l_dist=max_l_dist)
 
@@ -33,23 +33,23 @@ def _match_best_question_entities(question, names, max_l_dist=3):
         matches = list(filter(lambda m: m.dist == min_dist, matches))
 
         for match in matches:
-            token_indices = []
+            entity_indices = []
             for token_index, (_, start, end) in enumerate(indexed_word_tokens):
                 if not(end <= match.start or start >= match.end):
-                    token_indices.append(token_index)
-            matched_indices_lst.append(token_indices)
+                    entity_indices.append(token_index)
+            entity_indices_lst.append(entity_indices)
 
-    matched_indices_lst = sorted(
-        matched_indices_lst,
+    entity_indices_lst = sorted(
+        entity_indices_lst,
         key=operator.length_hint,
     )
-    filterd_matched_indices_lst = []
-    for idx, matched_indices in enumerate(matched_indices_lst):
+    filterd_entity_indices_lst = []
+    for idx, entity_indices in enumerate(entity_indices_lst):
         has_intersection = any([
-            bool(set(matched_indices).intersection(m))
-            for m in matched_indices_lst[idx+1:]
+            bool(set(entity_indices).intersection(m))
+            for m in entity_indices_lst[idx+1:]
         ])
         if not has_intersection:
-            filterd_matched_indices_lst.append(matched_indices)
+            filterd_entity_indices_lst.append(entity_indices)
 
-    return word_tokens, filterd_matched_indices_lst
+    return word_tokens, filterd_entity_indices_lst
