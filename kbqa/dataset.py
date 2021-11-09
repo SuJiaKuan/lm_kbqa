@@ -1,4 +1,7 @@
 import operator
+import re
+
+from fuzzysearch import Match
 from fuzzysearch import find_near_matches
 from thefuzz import process
 
@@ -23,7 +26,13 @@ def _match_best_question_entities(question, names, max_l_dist=3):
 
     entity_indices_lst = []
     for name, _ in name_candidates:
-        matches = find_near_matches(name, question, max_l_dist=max_l_dist)
+        matches = [
+            Match(start=m.start(), end=m.end(), dist=0, matched=name)
+            for m in re.finditer(name, question)
+        ]
+        if not matches:
+            matches = find_near_matches(name, question, max_l_dist=max_l_dist)
+            matches = list(filter(lambda m: m.matched, matches))
 
         if not matches:
             continue
