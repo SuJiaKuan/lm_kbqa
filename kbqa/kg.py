@@ -1,3 +1,5 @@
+"""Classes and functions for knowledge graphs"""
+
 import re
 from abc import ABC
 from abc import abstractmethod
