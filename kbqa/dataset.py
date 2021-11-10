@@ -1,5 +1,8 @@
 import operator
+from pathlib import Path
 import re
+
+import torch
 
 from fuzzysearch import Match
 from fuzzysearch import find_near_matches
@@ -61,3 +64,40 @@ def _match_best_question_entities(question, names, max_l_dist=3):
             filterd_entity_indices_lst.append(entity_indices)
 
     return word_tokens, filterd_entity_indices_lst
+
+
+class SimpleQuestionsDataset(torch.utils.data.Dataset):
+
+    def __init__(self, filepath, kg):
+        self._raw_examples = self._load(filepath, kg)
+
+    def _load(self, filepath, kg):
+        filepath_obj = Path(filepath)
+
+        raw_text = filepath_obj.read_text().strip()
+        lines = re.split(r"\n", raw_text)
+
+        raw_examples = []
+        for line in lines:
+            subj_uri, relation_uri, obj_uri, question = line.split("\t")
+
+            topic_entity = kg.get_entity(subj_uri)
+            answer_entity = kg.get_entity(obj_uri)
+            triplets = kg.get_triplets(subj_uri)
+
+            word_tokens, entity_indices_lst = _match_best_question_entities(
+                question,
+                topic_entity.names,
+            )
+            triplets = kg.get_triplets(subj_uri)
+
+            raw_examples.append({
+                "question": question,
+                "word_tokens": word_tokens,
+                "topic_entity": topic_entity,
+                "entity_indices_lst": entity_indices_lst,
+                "answer_entity": answer_entity,
+                "triplets": triplets,
+            })
+
+        return raw_examples
