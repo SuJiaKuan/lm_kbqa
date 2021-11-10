@@ -28,7 +28,7 @@ def _match_best_question_entities(question, names, max_l_dist=3):
     for name, _ in name_candidates:
         matches = [
             Match(start=m.start(), end=m.end(), dist=0, matched=name)
-            for m in re.finditer(name, question)
+            for m in re.finditer(re.escape(name), question)
         ]
         if not matches:
             matches = find_near_matches(name, question, max_l_dist=max_l_dist)
