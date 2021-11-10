@@ -7,8 +7,6 @@ from pathlib import Path
 
 from kbqa.exception import InvalidKnowledgeGraphKey
 from kbqa.exception import KnowledgeGraphKeyError
-from kbqa.io import load_pickle
-from kbqa.io import save_pickle
 
 
 FB_URI_PREFIX = "www.freebase.com"
