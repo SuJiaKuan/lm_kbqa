@@ -7,6 +7,8 @@ from pathlib import Path
 
 from kbqa.exception import InvalidKnowledgeGraphKey
 from kbqa.exception import KnowledgeGraphKeyError
+from kbqa.io import load_pickle
+from kbqa.io import save_pickle
 
 
 FB_URI_PREFIX = "www.freebase.com"
@@ -109,9 +111,18 @@ class KnowledgeGraph(ABC):
 
 class FreebaseKnowledgeGraph(KnowledgeGraph):
 
-    def __init__(self, kg_filepath, names_filepath):
-        self._entity_names_mapping = self._load_entity_names(names_filepath)
-        self._kg = self._load_kg(kg_filepath, self._entity_names_mapping)
+    def __init__(self, kg_filepath, names_filepath, cm):
+        self._entity_names_mapping = cm.load(
+            names_filepath,
+            self._load_entity_names,
+            names_filepath,
+        )
+        self._kg = cm.load(
+            kg_filepath,
+            self._load_kg,
+            kg_filepath,
+            self._entity_names_mapping,
+        )
 
     def _load_kg(self, filepath, entity_names_mapping):
         filepath_obj = Path(filepath)
