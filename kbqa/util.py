@@ -1,6 +1,10 @@
 import nltk
 
 
+def word_tokenize(text):
+    return nltk.word_tokenize(text)
+
+
 def word_tokenize_with_indices(text):
     tokens = nltk.word_tokenize(text)
 
@@ -13,3 +17,7 @@ def word_tokenize_with_indices(text):
         start = end
 
     return indexed_word_tokens
+
+
+def is_ascii(string):
+    return all(ord(c) < 128 for c in string)
