@@ -253,6 +253,10 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                     word_to_model_indices_lst.append(word_to_model_indices)
                     word_to_model_indices = []
 
+        # Handle the case that model tokens are truncated by tokenizer.
+        for _ in range(len(word_tokens) - len(word_to_model_indices_lst)):
+            word_to_model_indices_lst.append([])
+
         model_token_structures = []
         for model_token_idx, (model_token_id, model_to_word_idx) in \
                 enumerate(zip(model_token_ids, model_to_word_indices)):
