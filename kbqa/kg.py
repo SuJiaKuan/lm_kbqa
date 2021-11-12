@@ -197,7 +197,7 @@ class FreebaseKnowledgeGraph(KnowledgeGraph):
 
         subj_entity = self.get_entity(key)
         subj_uri, _ = self._format_key(key)
-        for relation_uri, obj_uri in self._kg[subj_uri]:
+        for relation_uri, obj_uri in self._kg.get(subj_uri, []):
             relation = Relation(relation_uri, self.uri_to_id(relation_uri))
             obj_entity = self.get_entity(obj_uri)
             triplets.append(Triplet(subj_entity, relation, obj_entity))
