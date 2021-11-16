@@ -12,7 +12,9 @@ from thefuzz import process
 from kbqa.util import word_tokenize
 from kbqa.util import word_tokenize_with_indices
 from kbqa.util import is_ascii
+from kbqa.const import SEQUENCE_LABEL
 from kbqa.config import SIMPLE_QUESTIONS_CONFIG
+from kbqa.config import SEQUENCE_LABEL_TAG2ID
 
 
 def _match_best_question_entities(question, names, max_l_dist=3):
@@ -163,6 +165,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
 
     def _equip_triplets(self, word_tokens, entity_indices_lst, triplets):
         equipped_word_tokens = []
+        word_labels = []
         word_token_structures = []
 
         last_indices = [indices[-1] for indices in entity_indices_lst]
@@ -177,6 +180,8 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                 "children": [],
             })
 
+            word_labels.append(SEQUENCE_LABEL.DISABLED)
+
             if idx in last_indices:
                 parent_indices = entity_indices_lst[last_indices.index(idx)]
                 parent_indices = [
@@ -184,7 +189,8 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                     for i in parent_indices
                 ]
 
-                for relation_word_tokens, obj_word_tokens, _ in triplets:
+                for relation_word_tokens, obj_word_tokens, is_answer \
+                        in triplets:
                     num_added_tokens = \
                         len(relation_word_tokens) + len(obj_word_tokens)
                     child_indices = list(range(
@@ -195,13 +201,22 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
 
                     equipped_word_tokens += relation_word_tokens
                     equipped_word_tokens += obj_word_tokens
-                    for _ in range(num_added_tokens):
+                    for added_idx in range(num_added_tokens):
                         word_token_structures.append({
                             "level": 1,
                             "block": inner_block_idx,
                             "parent": parent_indices,
                             "children": [],
                         })
+
+                        if added_idx == 0:
+                            label = \
+                                SEQUENCE_LABEL.ANSWER \
+                                if is_answer \
+                                else SEQUENCE_LABEL.NON_ANSWER
+                        else:
+                            label = SEQUENCE_LABEL.DISABLED
+                        word_labels.append(label)
 
                     for parent_idx in parent_indices:
                         word_token_structures[parent_idx]["children"].append(
@@ -210,7 +225,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
 
                     inner_block_idx += 1
 
-        return equipped_word_tokens, word_token_structures
+        return equipped_word_tokens, word_labels, word_token_structures
 
     def _encode_model_token_ids(self, word_tokens, tokenizer):
         tokenizer_encoded = tokenizer.encode_plus(
@@ -229,6 +244,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
     def _structurize_model_tokens(
         self,
         word_tokens,
+        word_labels,
         word_token_structures,
         model_token_ids,
         offset_mapping,
@@ -257,6 +273,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
         for _ in range(len(word_tokens) - len(word_to_model_indices_lst)):
             word_to_model_indices_lst.append([])
 
+        model_labels = []
         model_token_structures = []
         for model_token_idx, (model_token_id, model_to_word_idx) in \
                 enumerate(zip(model_token_ids, model_to_word_indices)):
@@ -268,6 +285,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                     "parent": [],
                     "children": [],
                 })
+                model_labels.append(SEQUENCE_LABEL.DISABLED)
             elif model_token_id == tokenizer.pad_token_id:
                 model_token_structures.append({
                     "level": -1,
@@ -275,6 +293,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                     "parent": [],
                     "children": [],
                 })
+                model_labels.append(SEQUENCE_LABEL.DISABLED)
             else:
                 word_token_structure = word_token_structures[model_to_word_idx]
 
@@ -296,7 +315,25 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                     "children": child_indices_lst,
                 })
 
-        return model_token_structures
+                leading_model_token_idx =\
+                    word_to_model_indices_lst[model_to_word_idx][0]
+                if model_token_idx == leading_model_token_idx:
+                    word_label = word_labels[model_to_word_idx]
+                    model_labels.append(word_label)
+                else:
+                    model_labels.append(SEQUENCE_LABEL.DISABLED)
+
+        return model_labels, model_token_structures
+
+    def _encode_labels(self, model_labels):
+        labels = []
+        for model_label in model_labels:
+            if model_label == SEQUENCE_LABEL.DISABLED:
+                labels.append(-100)
+            else:
+                labels.append(SEQUENCE_LABEL_TAG2ID[model_label])
+
+        return labels
 
     def _encode_position_ids(self, model_token_structures):
         position_ids = []
@@ -358,25 +395,25 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
             word_tokens = raw_example["word_tokens"]
             entity_indices_lst = raw_example["entity_indices_lst"]
 
-            word_tokens, word_token_structures = self._equip_triplets(
-                word_tokens,
-                entity_indices_lst,
-                triplets,
-            )
+            word_tokens, word_labels, word_token_structures = \
+                self._equip_triplets(word_tokens, entity_indices_lst, triplets)
 
             model_token_ids, offset_mapping = self._encode_model_token_ids(
                 word_tokens,
                 tokenizer,
             )
 
-            model_token_structures = self._structurize_model_tokens(
-                word_tokens,
-                word_token_structures,
-                model_token_ids,
-                offset_mapping,
-                tokenizer,
-            )
+            model_labels, model_token_structures = \
+                self._structurize_model_tokens(
+                    word_tokens,
+                    word_labels,
+                    word_token_structures,
+                    model_token_ids,
+                    offset_mapping,
+                    tokenizer,
+                )
 
+            labels = self._encode_labels(model_labels)
             position_ids = self._encode_position_ids(model_token_structures)
             token_type_ids = self._encode_token_type_ids(
                 model_token_structures,
@@ -390,6 +427,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                 "position_ids": position_ids,
                 "token_type_ids": token_type_ids,
                 "attention_mask": attention_mask,
+                "labels": labels,
             })
 
         return encodings
