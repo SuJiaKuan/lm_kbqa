@@ -1,5 +1,6 @@
 import argparse
 
+from kbqa.dataset import load_datasets
 from kbqa.const import DATASET
 from kbqa.const import MODEL_ARCHITECTURE
 
@@ -66,7 +67,15 @@ def parse_args():
 
 
 def main(args):
-    pass
+    datasets = load_datasets(
+        args.dataset,
+        args.data,
+        ["train", "valid"],
+        args.model,
+        args.checkpoint,
+        args.cache,
+        not args.no_cache,
+    )
 
 
 if __name__ == "__main__":

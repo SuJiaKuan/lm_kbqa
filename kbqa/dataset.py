@@ -1,17 +1,23 @@
 import operator
-from pathlib import Path
+import os
 import random
 import re
+from pathlib import Path
 
 import numpy as np
 import torch
 from fuzzysearch import Match
 from fuzzysearch import find_near_matches
 from thefuzz import process
+from transformers import BertTokenizerFast
 
+from kbqa.io import CacheManager
+from kbqa.kg import FreebaseKnowledgeGraph
 from kbqa.util import word_tokenize
 from kbqa.util import word_tokenize_with_indices
 from kbqa.util import is_ascii
+from kbqa.const import DATASET
+from kbqa.const import MODEL_ARCHITECTURE
 from kbqa.const import SEQUENCE_LABEL
 from kbqa.config import SIMPLE_QUESTIONS_CONFIG
 from kbqa.config import SEQUENCE_LABEL_TAG2ID
@@ -70,6 +76,55 @@ def _match_best_question_entities(question, names, max_l_dist=3):
             filterd_entity_indices_lst.append(entity_indices)
 
     return word_tokens, filterd_entity_indices_lst
+
+
+def load_datasets(
+    dataset,
+    data_dir,
+    splits,
+    model_arch,
+    checkpoint,
+    cache_dir,
+    cache_enabled,
+):
+    datasets = []
+
+    cm = CacheManager(cache_dir, enabled=cache_enabled)
+
+    if model_arch == MODEL_ARCHITECTURE.BERT:
+        tokenizer = BertTokenizerFast.from_pretrained(checkpoint)
+    else:
+        raise ValueError(
+            "Non-suppoted model architecture: {}".format(model_arch),
+        )
+
+    if dataset == DATASET.SIMPLE_QUESTIONS:
+        kg_filepath = os.path.join(
+            data_dir,
+            "freebase-subsets",
+            "freebase-FB2M.txt",
+        )
+        names_filepath = os.path.join(
+            data_dir,
+            "freebase_names",
+            "names.trimmed.2M.txt",
+        )
+        kg = FreebaseKnowledgeGraph(kg_filepath, names_filepath, cm)
+
+        for split in splits:
+            dataset_filepath = os.path.join(
+                data_dir,
+                "annotated_fb_data_{}.txt".format(split),
+            )
+            datasets.append(SimpleQuestionsDataset(
+                dataset_filepath,
+                kg,
+                tokenizer,
+            ))
+    else:
+        raise ValueError("Non-suppoted dataset: {}".format(dataset))
+
+    return datasets
 
 
 class SimpleQuestionsDataset(torch.utils.data.Dataset):
