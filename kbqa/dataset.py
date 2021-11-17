@@ -293,8 +293,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
             word_tokens,
             is_split_into_words=True,
             return_offsets_mapping=True,
-            # padding="max_length",
-            padding=True,
+            padding="max_length",
             truncation=True,
         )
         model_token_ids = tokenizer_encoded["input_ids"]
@@ -483,12 +482,18 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
                 model_token_structures,
             )
 
-            encodings.append({
+            encoding = {
                 "input_ids": model_token_ids,
                 "position_ids": position_ids,
                 "token_type_ids": token_type_ids,
                 "attention_mask": attention_mask,
                 "labels": labels,
-            })
+            }
+            encoding = {
+                key: torch.tensor(val)
+                for key, val in encoding.items()
+            }
+
+            encodings.append(encoding)
 
         return encodings
