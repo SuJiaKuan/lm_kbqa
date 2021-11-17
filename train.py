@@ -5,8 +5,8 @@ from kbqa.model import load_model
 from kbqa.const import DATASET
 from kbqa.const import MODEL_ARCHITECTURE
 from kbqa.const import TASK
-from kbqa.config import SEQUENCE_LABEL_ID2TAG
-from kbqa.config import SEQUENCE_LABEL_TAG2ID
+from kbqa.config import SEQUENCE_LABELING_ID2LABEL
+from kbqa.config import SEQUENCE_LABELING_LABEL2ID
 
 
 def parse_args():
@@ -84,8 +84,8 @@ def main(args):
     model = load_model(
         TASK.SEQUENCE_LABELING,
         args.checkpoint,
-        SEQUENCE_LABEL_ID2TAG,
-        SEQUENCE_LABEL_TAG2ID,
+        SEQUENCE_LABELING_ID2LABEL,
+        SEQUENCE_LABELING_LABEL2ID,
     )
 
 

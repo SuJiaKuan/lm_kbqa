@@ -20,7 +20,7 @@ from kbqa.const import DATASET
 from kbqa.const import MODEL_ARCHITECTURE
 from kbqa.const import SEQUENCE_LABEL
 from kbqa.config import SIMPLE_QUESTIONS_CONFIG
-from kbqa.config import SEQUENCE_LABEL_TAG2ID
+from kbqa.config import SEQUENCE_LABELING_LABEL2ID
 
 
 def _match_best_question_entities(question, names, max_l_dist=3):
@@ -392,7 +392,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
             if model_label == SEQUENCE_LABEL.DISABLED:
                 labels.append(-100)
             else:
-                labels.append(SEQUENCE_LABEL_TAG2ID[model_label])
+                labels.append(SEQUENCE_LABELING_LABEL2ID[model_label])
 
         return labels
 
