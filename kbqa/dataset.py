@@ -9,6 +9,7 @@ import torch
 from fuzzysearch import Match
 from fuzzysearch import find_near_matches
 from thefuzz import process
+from tqdm import tqdm
 from transformers import BertTokenizerFast
 
 from kbqa.io import CacheManager
@@ -136,12 +137,15 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
             kg.kg_filepath,
             kg.names_filepath,
         )
+
+        print("Loading simple questions dataset from '{}'".format(filepath))
         self._raw_examples = cm.load(
             "{}|raw_examples".format(cache_name_prefix),
             self._load,
             filepath,
             kg,
         )
+        print("Encoding simple questions dataset from '{}'".format(filepath))
         self._encodings = cm.load(
             "{}|encodings".format(cache_name_prefix),
             self._encode,
@@ -162,7 +166,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
         lines = re.split(r"\n", raw_text)
 
         raw_examples = []
-        for line in lines:
+        for line in tqdm(lines):
             subj_uri, relation_uri, obj_uri, question = line.split("\t")
 
             topic_entity = kg.get_entity(subj_uri)
@@ -460,7 +464,7 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
     def _encode(self, raw_examples, tokenizer):
         encodings = []
 
-        for raw_example in raw_examples:
+        for raw_example in tqdm(raw_examples):
             triplets = self._choose_triplets(
                 raw_example["triplets"],
                 raw_example["answer_entity"],

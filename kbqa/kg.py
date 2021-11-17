@@ -5,6 +5,8 @@ from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
 
+from tqdm import tqdm
+
 from kbqa.exception import InvalidKnowledgeGraphKey
 from kbqa.exception import KnowledgeGraphKeyError
 
@@ -113,11 +115,13 @@ class FreebaseKnowledgeGraph(KnowledgeGraph):
         self._kg_filepath = kg_filepath
         self._names_filepath = names_filepath
 
+        print("Loading entity names from '{}'".format(names_filepath))
         self._entity_names_mapping = cm.load(
             names_filepath,
             self._load_entity_names,
             names_filepath,
         )
+        print("Loading knowledge graph from '{}'".format(kg_filepath))
         self._kg = cm.load(
             kg_filepath,
             self._load_kg,
@@ -139,7 +143,7 @@ class FreebaseKnowledgeGraph(KnowledgeGraph):
         kg = {}
         raw_text = filepath_obj.read_text().strip()
         lines = re.split(r"\n", raw_text)
-        for line in lines:
+        for line in tqdm(lines):
             subj_uri, relation_uri, obj_uris = line.split("\t")
             obj_uris = obj_uris.split(" ")
 
@@ -158,7 +162,7 @@ class FreebaseKnowledgeGraph(KnowledgeGraph):
         lines = re.split(r"\n", raw_text)
 
         entity_name_mapping = {}
-        for line in lines:
+        for line in tqdm(lines):
             fid, _, name = line.split("\t")
             if fid not in entity_name_mapping:
                 entity_name_mapping[fid] = [name]
