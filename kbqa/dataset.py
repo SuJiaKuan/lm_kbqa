@@ -120,6 +120,7 @@ def load_datasets(
                 dataset_filepath,
                 kg,
                 tokenizer,
+                cm,
             ))
     else:
         raise ValueError("Non-suppoted dataset: {}".format(dataset))
@@ -129,9 +130,24 @@ def load_datasets(
 
 class SimpleQuestionsDataset(torch.utils.data.Dataset):
 
-    def __init__(self, filepath, kg, tokenizer):
-        self._raw_examples = self._load(filepath, kg)
-        self._encodings = self._encode(self._raw_examples, tokenizer)
+    def __init__(self, filepath, kg, tokenizer, cm):
+        cache_name_prefix = "{}|{}|{}".format(
+            filepath,
+            kg.kg_filepath,
+            kg.names_filepath,
+        )
+        self._raw_examples = cm.load(
+            "{}|raw_examples".format(cache_name_prefix),
+            self._load,
+            filepath,
+            kg,
+        )
+        self._encodings = cm.load(
+            "{}|encodings".format(cache_name_prefix),
+            self._encode,
+            self._raw_examples,
+            tokenizer,
+        )
 
     def __getitem__(self, idx):
         return self._encodings[idx]

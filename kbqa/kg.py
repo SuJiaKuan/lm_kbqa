@@ -110,6 +110,9 @@ class KnowledgeGraph(ABC):
 class FreebaseKnowledgeGraph(KnowledgeGraph):
 
     def __init__(self, kg_filepath, names_filepath, cm):
+        self._kg_filepath = kg_filepath
+        self._names_filepath = names_filepath
+
         self._entity_names_mapping = cm.load(
             names_filepath,
             self._load_entity_names,
@@ -121,6 +124,14 @@ class FreebaseKnowledgeGraph(KnowledgeGraph):
             kg_filepath,
             self._entity_names_mapping,
         )
+
+    @property
+    def kg_filepath(self):
+        return self._kg_filepath
+
+    @property
+    def names_filepath(self):
+        return self._names_filepath
 
     def _load_kg(self, filepath, entity_names_mapping):
         filepath_obj = Path(filepath)
