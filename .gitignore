@@ -156,3 +156,9 @@ Sessionx.vim
 tags
 # Persistent undo
 [._]*.un~
+
+# Default data directories
+/data
+# Default generated data / directories
+/results
+/__project__cache__
