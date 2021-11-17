@@ -1,8 +1,12 @@
 import argparse
 
 from kbqa.dataset import load_datasets
+from kbqa.model import load_model
 from kbqa.const import DATASET
 from kbqa.const import MODEL_ARCHITECTURE
+from kbqa.const import TASK
+from kbqa.config import SEQUENCE_LABEL_ID2TAG
+from kbqa.config import SEQUENCE_LABEL_TAG2ID
 
 
 def parse_args():
@@ -75,6 +79,13 @@ def main(args):
         args.checkpoint,
         args.cache,
         not args.no_cache,
+    )
+
+    model = load_model(
+        TASK.SEQUENCE_LABELING,
+        args.checkpoint,
+        SEQUENCE_LABEL_ID2TAG,
+        SEQUENCE_LABEL_TAG2ID,
     )
 
 
