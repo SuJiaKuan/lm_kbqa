@@ -1,7 +1,11 @@
 import argparse
 
+from transformers import TrainingArguments
+from transformers import Trainer
+
 from kbqa.dataset import load_datasets
 from kbqa.model import load_model
+from kbqa.metric import compute_seq_labeling_metrics
 from kbqa.const import DATASET
 from kbqa.const import MODEL_ARCHITECTURE
 from kbqa.const import TASK
@@ -47,6 +51,30 @@ def parse_args():
         ]
     )
     parser.add_argument(
+        "--epochs",
+        type=int,
+        default=3,
+        help="Total number of training epochs",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=8,
+        help="Batch size",
+    )
+    parser.add_argument(
+        "--warmup_steps",
+        type=int,
+        default=500,
+        help="Number of warmup steps for learning rate scheduler",
+    )
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=0.01,
+        help="Strenght of weight decay",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=str,
@@ -80,6 +108,8 @@ def main(args):
         args.cache,
         not args.no_cache,
     )
+    train_dataset = datasets[0]
+    val_dataset = datasets[1]
 
     model = load_model(
         TASK.SEQUENCE_LABELING,
@@ -87,6 +117,26 @@ def main(args):
         SEQUENCE_LABELING_ID2LABEL,
         SEQUENCE_LABELING_LABEL2ID,
     )
+
+    training_args = TrainingArguments(
+        output_dir=args.output,
+        num_train_epochs=args.epochs,
+        per_device_train_batch_size=args.batch_size,
+        per_device_eval_batch_size=args.batch_size,
+        warmup_steps=args.warmup_steps,
+        weight_decay=args.weight_decay,
+        evaluation_strategy="epoch",
+    )
+
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=val_dataset,
+        compute_metrics=compute_seq_labeling_metrics,
+    )
+
+    trainer.train()
 
 
 if __name__ == "__main__":
