@@ -133,6 +133,12 @@ class SimpleQuestionsDataset(torch.utils.data.Dataset):
         self._raw_examples = self._load(filepath, kg)
         self._encodings = self._encode(self._raw_examples, tokenizer)
 
+    def __getitem__(self, idx):
+        return self._encodings[idx]
+
+    def __len__(self):
+        return len(self._encodings)
+
     def _load(self, filepath, kg):
         filepath_obj = Path(filepath)
 
