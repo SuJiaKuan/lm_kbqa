@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import torch
 
+from kbqa.tokenizer import load_tokenizer
 from kbqa.dataset import load_datasets
 from kbqa.model import load_model
 from kbqa.const import DATASET
@@ -99,12 +100,12 @@ def eval_accuracy(test_dataloader, model):
 
 
 def main(args):
+    tokenizer = load_tokenizer(args.model, args.checkpoint)
     test_dataset = load_datasets(
         args.dataset,
         args.data,
         ["test"],
-        args.model,
-        args.checkpoint,
+        tokenizer,
         args.cache,
         not args.no_cache,
     )[0]

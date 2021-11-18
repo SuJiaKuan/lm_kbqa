@@ -3,6 +3,7 @@ import argparse
 from transformers import TrainingArguments
 from transformers import Trainer
 
+from kbqa.tokenizer import load_tokenizer
 from kbqa.dataset import load_datasets
 from kbqa.model import load_model
 from kbqa.metric import compute_seq_labeling_metrics
@@ -99,12 +100,12 @@ def parse_args():
 
 
 def main(args):
+    tokenizer = load_tokenizer(args.model, args.checkpoint)
     datasets = load_datasets(
         args.dataset,
         args.data,
         ["train", "valid"],
-        args.model,
-        args.checkpoint,
+        tokenizer,
         args.cache,
         not args.no_cache,
     )
@@ -130,6 +131,7 @@ def main(args):
 
     trainer = Trainer(
         model=model,
+        tokenizer=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,

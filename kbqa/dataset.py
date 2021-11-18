@@ -10,7 +10,6 @@ from fuzzysearch import Match
 from fuzzysearch import find_near_matches
 from thefuzz import process
 from tqdm import tqdm
-from transformers import BertTokenizerFast
 
 from kbqa.io import CacheManager
 from kbqa.kg import FreebaseKnowledgeGraph
@@ -18,7 +17,6 @@ from kbqa.util import word_tokenize
 from kbqa.util import word_tokenize_with_indices
 from kbqa.util import is_ascii
 from kbqa.const import DATASET
-from kbqa.const import MODEL_ARCHITECTURE
 from kbqa.const import SEQUENCE_LABEL
 from kbqa.config import SIMPLE_QUESTIONS_CONFIG
 from kbqa.config import SEQUENCE_LABELING_LABEL2ID
@@ -83,21 +81,13 @@ def load_datasets(
     dataset,
     data_dir,
     splits,
-    model_arch,
-    checkpoint,
+    tokenizer,
     cache_dir,
     cache_enabled,
 ):
     datasets = []
 
     cm = CacheManager(cache_dir, enabled=cache_enabled)
-
-    if model_arch == MODEL_ARCHITECTURE.BERT:
-        tokenizer = BertTokenizerFast.from_pretrained(checkpoint)
-    else:
-        raise ValueError(
-            "Non-suppoted model architecture: {}".format(model_arch),
-        )
 
     if dataset == DATASET.SIMPLE_QUESTIONS:
         kg_filepath = os.path.join(
