@@ -80,17 +80,23 @@ def parse_args():
     return args
 
 
-def eval_accuracy(test_dataloader, model):
+def eval_accuracy(test_dataloader, model, device):
     answer_id = SEQUENCE_LABELING_LABEL2ID[SEQUENCE_LABEL.ANSWER]
     correct_cnt = 0
     total_cnt = 0
 
+    model_ = model.to(device)
+
     print("Calculate accuracy...")
     for encodings in tqdm(test_dataloader):
-        predictions = model(**encodings)
+        encodings_ = {k: v.to(device) for k, v in encodings.items()}
+        predictions = model_(**encodings_)
 
         gt_labels = encodings["labels"].numpy()
-        pred_labels = np.argmax(predictions.logits.detach().numpy(), axis=-1)
+        pred_labels = np.argmax(
+            predictions.logits.detach().cpu().numpy(),
+            axis=-1,
+        )
 
         answer_indices = gt_labels == answer_id
         correctnesses = pred_labels[answer_indices] == answer_id
@@ -123,7 +129,10 @@ def main(args):
         SEQUENCE_LABELING_LABEL2ID,
     )
 
-    correct_cnt, total_cnt = eval_accuracy(test_dataloader, model)
+    device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = torch.device(device_name)
+
+    correct_cnt, total_cnt = eval_accuracy(test_dataloader, model, device)
     print("Accuracy: {}% ({} / {})".format(
         100 * (correct_cnt / total_cnt),
         correct_cnt,
