@@ -2,6 +2,7 @@ import argparse
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
 from kbqa.tokenizer import load_tokenizer
 from kbqa.dataset import load_datasets
@@ -84,7 +85,8 @@ def eval_accuracy(test_dataloader, model):
     correct_cnt = 0
     total_cnt = 0
 
-    for encodings in test_dataloader:
+    print("Calculate accuracy...")
+    for encodings in tqdm(test_dataloader):
         predictions = model(**encodings)
 
         gt_labels = encodings["labels"].numpy()
