@@ -80,10 +80,9 @@ def parse_args():
     return args
 
 
-def eval_accuracy(test_dataloader, model, device):
-    answer_id = SEQUENCE_LABELING_LABEL2ID[SEQUENCE_LABEL.ANSWER]
-    correct_cnt = 0
-    total_cnt = 0
+def calc_accuracy(test_dataloader, model, device):
+    correct_cnt = {k: 0 for k in SEQUENCE_LABELING_LABEL2ID.keys()}
+    total_cnt = {k: 0 for k in SEQUENCE_LABELING_LABEL2ID.keys()}
 
     model_ = model.to(device)
 
@@ -98,11 +97,12 @@ def eval_accuracy(test_dataloader, model, device):
             axis=-1,
         )
 
-        answer_indices = gt_labels == answer_id
-        correctnesses = pred_labels[answer_indices] == answer_id
+        for label, label_id in SEQUENCE_LABELING_LABEL2ID.items():
+            label_indices = gt_labels == label_id
+            correctnesses = pred_labels[label_indices] == label_id
 
-        correct_cnt += np.sum(correctnesses)
-        total_cnt += len(correctnesses)
+            correct_cnt[label] += np.sum(correctnesses)
+            total_cnt[label] += len(correctnesses)
 
     return correct_cnt, total_cnt
 
@@ -132,12 +132,15 @@ def main(args):
     device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_name)
 
-    correct_cnt, total_cnt = eval_accuracy(test_dataloader, model, device)
-    print("Accuracy: {}% ({} / {})".format(
-        100 * (correct_cnt / total_cnt),
-        correct_cnt,
-        total_cnt,
-    ))
+    correct_cnt, total_cnt = calc_accuracy(test_dataloader, model, device)
+
+    for label in SEQUENCE_LABELING_LABEL2ID.keys():
+        print("Accuracy of {}: {}% ({} / {})".format(
+            label,
+            100 * (correct_cnt[label] / total_cnt[label]),
+            correct_cnt[label],
+            total_cnt[label],
+        ))
 
 
 if __name__ == "__main__":
